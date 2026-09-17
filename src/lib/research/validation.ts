@@ -109,9 +109,25 @@ export function validateDataset(dataset: Dataset): void {
     requireCondition(item.text_scope !== "complete" || (Boolean(item.text?.trim()) && item.retrieval_status === "retrieved"), "complete text must be retrieved");
     requireCondition(item.text_scope !== "excerpt" || Boolean(item.text?.trim()), "excerpt requires text");
     requireCondition(item.text_scope !== "unavailable" || item.text === null, "unavailable text must be null");
-    for (const date of [item.published_at, item.retrieved_at]) {
-      requireCondition(date === null || Number.isFinite(Date.parse(date)), "invalid content timestamp");
+    const publication = item.publication;
+    requireCondition(publication && ["exact", "minute", "hour", "day", "unknown"].includes(publication.precision)
+      && ["verified", "unverified", "unavailable"].includes(publication.verification_status), `invalid publication evidence for ${item.id}`);
+    requireCondition(isPublicSourceUrl(publication.source_url)
+      && canonicalizeSourceUrl(publication.source_url) === canonical, `publication source mismatch for ${item.id}`);
+    requireCondition(Boolean(publication.evidence?.trim()), `publication evidence note required for ${item.id}`);
+    requireCondition(publication.verification_status !== "verified"
+      || (publication.published_at !== null && publication.precision !== "unknown"), `verified publication timestamp required for ${item.id}`);
+    requireCondition(publication.verification_status !== "unavailable"
+      || (publication.published_at === null && publication.precision === "unknown"), `unavailable publication data must remain null for ${item.id}`);
+    requireCondition(publication.published_at !== null
+      || publication.precision === "unknown", `missing publication timestamp must use unknown precision for ${item.id}`);
+    if (publication.published_at !== null) {
+      requireCondition(Number.isFinite(Date.parse(publication.published_at)), `invalid publication timestamp for ${item.id}`);
+      requireCondition(publication.precision !== "day" || (/^\d{4}-\d{2}-\d{2}$/.test(publication.published_at)
+        && new Date(publication.published_at).toISOString().slice(0, 10) === publication.published_at), `day publication precision mismatch for ${item.id}`);
+      requireCondition(publication.precision !== "exact" || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(publication.published_at), `exact publication precision mismatch for ${item.id}`);
     }
+    requireCondition(item.retrieved_at === null || Number.isFinite(Date.parse(item.retrieved_at)), "invalid retrieval timestamp");
     if (item.metrics) {
       requireCondition(item.metrics.verified === true && item.verified, "metrics must be verified");
       requireCondition(isPublicSourceUrl(item.metrics.source_url) && Number.isFinite(Date.parse(item.metrics.observed_at)), "metrics need a source and observation date");

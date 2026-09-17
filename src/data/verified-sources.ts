@@ -1,4 +1,5 @@
 import type { ContentItem, Dataset, SourceCapture } from "../lib/research/types";
+import { publicationFromSource, unavailablePublication } from "../lib/research/publication";
 import capturedText from "./source-captures.json";
 import { publicResponseRecords } from "./public-response";
 
@@ -109,7 +110,7 @@ const content: ContentItem[] = [
   ...campaigns.map((campaign): ContentItem => ({
     id: `${campaign.id}-page`, campaign_id: campaign.id, type: "campaign_page", platform: "Web",
     source_url: work(campaign.id), retrieved_from_url: work(campaign.id), author: "Social Capital Inc.", author_handle: null,
-    text: null, published_at: null, metrics: null, media: null, verified: true,
+    text: null, publication: unavailablePublication(work(campaign.id), "Campaign portfolio pages do not establish a social-post publication timestamp."), metrics: null, media: null, verified: true,
     retrieval_status: "retrieved", retrieved_at: reviewedAt, text_scope: "unavailable",
     text_starts_at_beginning: false, source_section: "metadata",
     source_capture_id: null, launch_event_id: null,
@@ -122,15 +123,15 @@ const content: ContentItem[] = [
     author: post.author, author_handle: post.handle,
     text: captures.find(c => c.content_item_id === `${post.campaign}-${post.platform.toLowerCase()}`)?.text ?? null,
     source_capture_id: captures.find(c => c.content_item_id === `${post.campaign}-${post.platform.toLowerCase()}`)?.id ?? null,
-    launch_event_id: `${post.campaign}-launch`, published_at: post.date,
+    launch_event_id: `${post.campaign}-launch`, publication: publicationFromSource(post.platform, post.url, post.date),
     metrics: null, media: null, verified: true, retrieval_status: "partial",
     retrieved_at: captures.find(c => c.content_item_id === `${post.campaign}-${post.platform.toLowerCase()}`)?.retrieved_at ?? reviewedAt,
     text_scope: captures.some(c => c.content_item_id === `${post.campaign}-${post.platform.toLowerCase()}`) ? "excerpt" : "unavailable",
     text_starts_at_beginning: post.beginning ?? false, source_section: post.section ?? "post",
     verification_note: [
       post.platform === "X"
-        ? "Source identity and publication date identified in the campaign page's X embed. Direct X retrieval returned HTTP 403. Date is the date displayed in the embed; timezone is unknown."
-        : "Public LinkedIn source inspected. Only a relative publication date was visible, so published_at remains null.",
+        ? "Source identity and displayed publication day were identified in the campaign page's X embed. The canonical status identifier supplies the retained UTC creation instant."
+        : "Public LinkedIn source inspected. The canonical activity identifier supplies the retained UTC creation instant; the visible relative date is not converted or used as a fallback.",
       "Source identity is verified separately from exact quote availability. Quotations require a retained contiguous source-text capture. Public-response values, when available, are stored separately as dated snapshots.",
       post.campaign === "wispr-flow" && post.platform === "X" ? "Exact contiguous text could not be recovered across the embedded mention in this retrieval. The earlier normalized excerpt is withheld from quotes and analysis." : "Exact excerpt rechecked against the retrieved public-page text on 2026-09-17; original whitespace is preserved.",
       post.note,

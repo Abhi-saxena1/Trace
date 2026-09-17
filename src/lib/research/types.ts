@@ -50,6 +50,17 @@ export interface PublicResponseRecord {
   note: string;
 }
 
+export type PublicationPrecision = "exact" | "minute" | "hour" | "day" | "unknown";
+export type PublicationVerificationStatus = "verified" | "unverified" | "unavailable";
+
+export interface PublicationEvidence {
+  published_at: string | null;
+  precision: PublicationPrecision;
+  source_url: string;
+  verification_status: PublicationVerificationStatus;
+  evidence: string | null;
+}
+
 export interface ContentItem {
   id: string;
   campaign_id: string;
@@ -59,7 +70,7 @@ export interface ContentItem {
   author: string | null;
   author_handle: string | null;
   text: string | null;
-  published_at: string | null;
+  publication: PublicationEvidence;
   metrics: Metrics | null;
   media: { url: string; type: "image" | "video" | "audio"; description: string | null }[] | null;
   verified: boolean;
@@ -95,20 +106,25 @@ export interface LaunchEvent {
   source_urls: string[];
 }
 
-export type PlatformSequence = "x_first" | "linkedin_first" | "same_window" | "unknown";
+export type PlatformSequence = "x_first" | "linkedin_first" | "same_day" | "unknown";
+export interface SequenceAnalysis {
+  status: "resolved" | "same_day_unresolved" | "insufficient";
+  order: PlatformSequence;
+  precision: PublicationPrecision;
+  delta_minutes: number | null;
+  explanation: string;
+}
+
 export interface LaunchMechanics {
   event_id: string;
   campaign_ids: string[];
-  platform_sequence: PlatformSequence;
-  sequence_basis: "verified_timestamps" | "insufficient_timestamps";
+  sequence: SequenceAnalysis;
   content: {
     content_item_id: string;
     platform: string | null;
-    timestamp: string | null;
-    timestamp_precision: "instant" | "day" | "unavailable";
+    publication: PublicationEvidence;
     sequence_position: number | null;
     relationship: "same_launch_event";
-    time_delta_minutes: number | null;
     source_url: string;
   }[];
   participation: {

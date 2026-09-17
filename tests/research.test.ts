@@ -13,6 +13,18 @@ import { spanFor } from "../src/lib/research/extraction/deterministic";
 import { validateResearch } from "../src/lib/research/findings-validation";
 import { presentSignal } from "../src/lib/research/signal/presentation";
 import { analyzePerformance, calculateEngagementRate } from "../src/lib/research/performance/analyze";
+import { publicationFromSource } from "../src/lib/research/publication";
+import type { PublicationPrecision } from "../src/lib/research/types";
+
+function setPublication(item: ContentItem, publishedAt: string | null, precision: PublicationPrecision = publishedAt ? "exact" : "unknown") {
+  item.publication = {
+    published_at: publishedAt,
+    precision,
+    source_url: item.source_url,
+    verification_status: publishedAt ? "verified" : "unavailable",
+    evidence: publishedAt ? "Synthetic verified publication evidence." : "No publication timestamp in the synthetic fixture.",
+  };
+}
 
 // Synthetic test-only material. Never imported by the app or production seed.
 function fixture(texts: string[]): Dataset {
@@ -25,7 +37,12 @@ function fixture(texts: string[]): Dataset {
   const content = texts.map((text, i): ContentItem => ({
     id: `test-post-${i}`, campaign_id: `test-${i}`, type: "social_post", platform: "Test",
     source_url: `https://example.com/synthetic/${i}`, retrieved_from_url: `https://example.com/synthetic/${i}`,
-    author: null, author_handle: null, text, published_at: null, metrics: null, media: null,
+    author: null, author_handle: null, text,
+    publication: {
+      published_at: null, precision: "unknown", source_url: `https://example.com/synthetic/${i}`,
+      verification_status: "unavailable", evidence: "No publication timestamp in the synthetic fixture.",
+    },
+    metrics: null, media: null,
     verified: true, retrieval_status: "retrieved", retrieved_at: "2026-09-16",
     text_scope: "complete", text_starts_at_beginning: true, source_section: "post",
     verification_note: "Synthetic test fixture only",
@@ -68,7 +85,7 @@ test("reviewed dataset has 9 campaigns, 24 sources, 14 exact captures and one wi
   assert.ok(result.dataset.content.every(item => item.metrics === null));
   assert.ok(result.dataset.campaigns.every(c => c.provenance.status === "source_verified" && c.date_precision === "month"));
   assert.ok(result.dataset.content.filter(c => c.platform === "X").every(c => c.source_url !== c.retrieved_from_url));
-  assert.ok(result.dataset.content.filter(c => c.platform === "LinkedIn").every(c => c.published_at === null));
+  assert.ok(result.dataset.content.filter(c => c.platform === "LinkedIn").every(c => c.publication.precision === "exact"));
 });
 
 test("current corpus runs extraction and preserves supported Cartesia, Gamma and Icon fields", async () => {
@@ -342,6 +359,7 @@ test("canonical identity handles tracking, fragments, query order, aliases, medi
 
 function retarget(dataset: Dataset, index: number, url: string) {
   dataset.content[index].source_url = url;
+  dataset.content[index].publication.source_url = url;
   dataset.content[index].retrieved_from_url = url;
   dataset.captures[index].source_url = url;
   dataset.captures[index].retrieved_from_url = url;
@@ -479,7 +497,7 @@ test("publication gate rejects unsupported confidence, hidden counterexamples, f
     (r: typeof result) => { r.patterns[0].evidence_ids = []; },
     (r: typeof result) => { r.evidence[0].campaign_id = "unrelated"; },
     (r: typeof result) => { r.evidence[0].extraction_id = "orphaned"; },
-    (r: typeof result) => { r.mechanics[0].platform_sequence = "x_first"; },
+    (r: typeof result) => { r.mechanics[0].sequence.order = "x_first"; },
     (r: typeof result) => { r.performance.verified_metrics = 999; },
     (r: typeof result) => { r.signal!.thesis = "This strategy makes launches win."; },
     (r: typeof result) => { r.signal!.supporting_evidence = []; },
@@ -640,46 +658,130 @@ test("launch mechanics create one normalized record per reviewed launch event", 
   }
 });
 
-test("timestamp availability and missing timestamps remain explicit in launch mechanics", async () => {
+test("publication audit retains exact source metadata and honest unresolved campaigns", async () => {
   const mechanics = (await runResearch(seedDataset)).mechanics;
-  assert.equal(mechanics.flatMap(item => item.content).filter(item => item.timestamp_precision === "day").length, 9);
-  assert.equal(mechanics.flatMap(item => item.content).filter(item => item.timestamp_precision === "unavailable").length, 6);
-  assert.ok(mechanics.every(item => item.platform_sequence === "unknown" && item.sequence_basis === "insufficient_timestamps"));
-  assert.ok(mechanics.flatMap(item => item.content).every(item => item.sequence_position === null && item.time_delta_minutes === null));
+  assert.equal(mechanics.flatMap(item => item.content).filter(item => item.publication.precision === "exact").length, 15);
+  assert.equal(mechanics.filter(item => item.sequence.status === "resolved").length, 6);
+  assert.equal(mechanics.filter(item => item.sequence.status === "insufficient").length, 3);
+  assert.equal(mechanics.filter(item => item.sequence.delta_minutes !== null).length, 6);
+  assert.ok(mechanics.flatMap(item => item.content).every(item => item.publication.source_url === item.source_url));
 });
 
-test("precise paired timestamps identify X-first sequencing and elapsed time", async () => {
+test("exact X and LinkedIn timestamps establish sequence positions and delta", async () => {
   const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
-  dataset.content[0].published_at = "2026-01-02T10:00:00Z";
-  dataset.content[1].published_at = "2026-01-02T11:00:00Z";
+  setPublication(dataset.content[0], "2026-01-02T10:00:00Z");
+  setPublication(dataset.content[1], "2026-01-02T11:00:00Z");
   const mechanics = (await runResearch(dataset)).mechanics[0];
-  assert.equal(mechanics.platform_sequence, "x_first");
+  assert.equal(mechanics.sequence.order, "x_first");
+  assert.equal(mechanics.sequence.precision, "exact");
+  assert.equal(mechanics.sequence.delta_minutes, 60);
   assert.deepEqual(mechanics.content.map(item => item.sequence_position), [1, 2]);
-  assert.deepEqual(mechanics.content.map(item => item.time_delta_minutes), [0, 60]);
 });
 
-test("precise paired timestamps identify LinkedIn-first sequencing", async () => {
+test("different verified day-only dates establish order without an exact delta", async () => {
   const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
-  dataset.content[0].published_at = "2026-01-02T12:00:00Z";
-  dataset.content[1].published_at = "2026-01-02T10:00:00Z";
-  assert.equal((await runResearch(dataset)).mechanics[0].platform_sequence, "linkedin_first");
+  setPublication(dataset.content[0], "2026-01-02", "day");
+  setPublication(dataset.content[1], "2026-01-03", "day");
+  const sequence = (await runResearch(dataset)).mechanics[0].sequence;
+  assert.equal(sequence.status, "resolved");
+  assert.equal(sequence.order, "x_first");
+  assert.equal(sequence.precision, "day");
+  assert.equal(sequence.delta_minutes, null);
 });
 
-test("posts within fifteen minutes form a same-window launch without claiming simultaneity", async () => {
+test("same-day day-only evidence keeps platform order unresolved", async () => {
   const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
-  dataset.content[0].published_at = "2026-01-02T10:00:00Z";
-  dataset.content[1].published_at = "2026-01-02T10:10:00Z";
-  assert.equal((await runResearch(dataset)).mechanics[0].platform_sequence, "same_window");
+  setPublication(dataset.content[0], "2026-01-02", "day");
+  setPublication(dataset.content[1], "2026-01-02", "day");
+  const sequence = (await runResearch(dataset)).mechanics[0].sequence;
+  assert.equal(sequence.status, "same_day_unresolved");
+  assert.equal(sequence.order, "same_day");
+  assert.equal(sequence.delta_minutes, null);
 });
 
-test("a missing or date-only timestamp prevents platform order claims", async () => {
-  const missing = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
-  missing.content[0].published_at = "2026-01-02T10:00:00Z";
-  missing.content[1].published_at = null;
-  assert.equal((await runResearch(missing)).mechanics[0].platform_sequence, "unknown");
-  const dateOnly = structuredClone(missing);
-  dateOnly.content[1].published_at = "2026-01-02";
-  assert.equal((await runResearch(dateOnly)).mechanics[0].platform_sequence, "unknown");
+test("one known platform timestamp and one missing timestamp remain unresolved", async () => {
+  const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
+  setPublication(dataset.content[0], "2026-01-02T10:00:00Z");
+  const sequence = (await runResearch(dataset)).mechanics[0].sequence;
+  assert.equal(sequence.status, "insufficient");
+  assert.match(sequence.explanation, /LinkedIn/);
+});
+
+test("both missing platform timestamps remain unresolved", async () => {
+  const sequence = (await runResearch(pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]))).mechanics[0].sequence;
+  assert.equal(sequence.status, "insufficient");
+  assert.equal(sequence.order, "unknown");
+  assert.match(sequence.explanation, /X and LinkedIn/);
+});
+
+test("exact timestamps respect timezone offsets", async () => {
+  const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
+  setPublication(dataset.content[0], "2026-01-02T10:00:00+05:30");
+  setPublication(dataset.content[1], "2026-01-02T05:00:00Z");
+  const sequence = (await runResearch(dataset)).mechanics[0].sequence;
+  assert.equal(sequence.order, "x_first");
+  assert.equal(sequence.delta_minutes, 30);
+});
+
+test("exact timestamps compare different timezone offsets as instants", async () => {
+  const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
+  setPublication(dataset.content[0], "2026-01-02T09:00:00-08:00");
+  setPublication(dataset.content[1], "2026-01-02T18:30:00+01:00");
+  const sequence = (await runResearch(dataset)).mechanics[0].sequence;
+  assert.equal(sequence.order, "x_first");
+  assert.equal(sequence.delta_minutes, 30);
+});
+
+test("unsupported source identifiers do not receive a fabricated fallback timestamp", () => {
+  assert.deepEqual(publicationFromSource("X", "https://x.com/example/status/not-a-source-id"), {
+    published_at: null,
+    precision: "unknown",
+    source_url: "https://x.com/example/status/not-a-source-id",
+    verification_status: "unavailable",
+    evidence: "The retained public source does not provide supported publication timestamp metadata.",
+  });
+});
+
+test("canonical platform identifiers decode deterministic UTC publication instants", () => {
+  const xUrl = "https://x.com/krandiash/status/1983202316397453676";
+  const linkedInUrl = "https://www.linkedin.com/posts/krandiash_weve-raised-100m-from-kleiner-perkins-activity-7388968595499728896-0UJn";
+  assert.deepEqual(publicationFromSource("X", xUrl, "2025-10-28"), {
+    published_at: "2025-10-28T16:00:53.003Z",
+    precision: "exact",
+    source_url: xUrl,
+    verification_status: "verified",
+    evidence: "UTC creation instant decoded from the canonical X status identifier; its UTC day matches the source-displayed 2025-10-28 date.",
+  });
+  assert.equal(publicationFromSource("LinkedIn", linkedInUrl).published_at, "2025-10-28T16:03:13.565Z");
+  assert.equal(publicationFromSource("LinkedIn", linkedInUrl).source_url, linkedInUrl);
+});
+
+test("publication timestamps require matching source provenance and consistent precision", async () => {
+  const mismatchedSource = fixture(["Introducing Test."]);
+  setPublication(mismatchedSource.content[0], "2026-01-02T10:00:00Z");
+  mismatchedSource.content[0].publication.source_url = "https://example.com/different-source";
+  await assert.rejects(runResearch(mismatchedSource), /publication source mismatch/);
+
+  const falsePrecision = fixture(["Introducing Test."]);
+  setPublication(falsePrecision.content[0], "2026-01-02T10:00:00Z", "day");
+  await assert.rejects(runResearch(falsePrecision), /day publication precision mismatch/);
+});
+
+test("campaign month cannot establish platform sequence", async () => {
+  const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
+  dataset.campaigns[0].launch_date = "2026-01";
+  dataset.campaigns[0].date_precision = "month";
+  assert.equal((await runResearch(dataset)).mechanics[0].sequence.status, "insufficient");
+});
+
+test("content record order cannot establish or reverse platform sequence", async () => {
+  const dataset = pairedFixture([["Introducing Test.", "Comment TEST and we'll send you a guide."]]);
+  setPublication(dataset.content[0], "2026-01-02T12:00:00Z");
+  setPublication(dataset.content[1], "2026-01-02T10:00:00Z");
+  dataset.content.reverse();
+  const mechanics = (await runResearch(dataset)).mechanics[0];
+  assert.equal(mechanics.sequence.order, "linkedin_first");
+  assert.equal(mechanics.sequence.delta_minutes, 120);
 });
 
 test("cross-posts remain grouped as content relationships inside one event", async () => {
@@ -724,7 +826,7 @@ test("seed signature signal is a source-verifiable combination, not a timing cla
     const item = research.evidence.find(evidence => evidence.id === id)!;
     return isVerifiedQuote(item.span, research.dataset.captures.find(capture => capture.id === item.span.capture_id));
   }));
-  assert.ok(pattern.limitations.some(limit => /sequence and time deltas are unavailable/i.test(limit)));
+  assert.ok(pattern.limitations.some(limit => /verified timestamp precision supports/i.test(limit)));
 });
 
 test("verified public-response snapshots preserve exact and abbreviated source values", async () => {

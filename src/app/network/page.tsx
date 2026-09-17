@@ -11,7 +11,7 @@ export default async function Network() {
       <p className="network-legend eyebrow">Campaign → Launch event → Mechanics → Content → Platform → Public response → Source → Pattern → Signal</p>
       {research.dataset.campaigns.map(campaign => <article className="relationship-row" key={campaign.id}>
         <Link className="campaign-title" href={`/launches/${campaign.id}`}>{campaign.company} ↗</Link>
-        <div><p className="research-note">→ {research.mechanics.find(item => item.campaign_ids.includes(campaign.id))?.event_id} · {research.mechanics.find(item => item.campaign_ids.includes(campaign.id))?.platform_sequence.replaceAll("_", " ")} sequence</p>{research.dataset.content.filter(item => item.campaign_id === campaign.id).map(item => <div className="relationship-content" key={item.id}>
+        <div><p className="research-note">→ {research.mechanics.find(item => item.campaign_ids.includes(campaign.id))?.event_id} · {research.mechanics.find(item => item.campaign_ids.includes(campaign.id))?.sequence.order.replaceAll("_", " ")} sequence</p>{research.dataset.content.filter(item => item.campaign_id === campaign.id).map(item => <div className="relationship-content" key={item.id}>
           <Link href={`/launches/${campaign.id}#${item.id}`}>{item.platform} / {item.source_section.replaceAll("_", " ")}</Link>
           <span className="research-note">{research.extractions.some(e => e.content_item_id === item.id) ? "→ Text extraction" : "→ Portfolio metadata"}</span>
           <a href={item.source_url} target="_blank" rel="noreferrer">Source ↗</a>

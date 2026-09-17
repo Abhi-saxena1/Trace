@@ -191,7 +191,7 @@ export function detectPatterns(dataset: Dataset, extractions: Extraction[], mech
       limitations: [
         "The relationship is descriptive and does not establish intent, performance, causality or a platform-wide strategy.",
         "Only retained excerpts are compared. An excerpt can establish an observed cue but cannot characterize the complete post.",
-        "Publication sequence and time deltas are unavailable because paired precise timestamps were not retrieved.",
+        "Publication order and elapsed time are reported only where verified timestamp precision supports them.",
         "The portfolio is purposively selected and is not a representative sample of launches.",
       ],
     });

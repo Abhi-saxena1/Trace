@@ -44,6 +44,8 @@ The pipeline clones inputs, isolates provider arguments and verifies provider id
 
 Source identity verification is separate from retrieval and quote availability. Labels distinguish verified source metadata, retrieved but unverified data, exact verified excerpts, deterministic/AI interpretations, inferred analysis and missing data. Verification of wording does not verify the author's business claims.
 
+Publication timing is also separate from source-text capture. Every content item carries a publication value, precision, original source URL, verification status and evidence note. Canonical X status and LinkedIn activity identifiers can supply exact UTC creation instants; unsupported identifiers remain unavailable. Dataset validation rejects verified timestamps without provenance, precision/value mismatches, or publication sources that do not match the content source. Sequence logic uses only verified publication evidence. It supports exact deltas, day-level ordering without a duration, same-day unresolved states and explicit missing-platform reasons. It never falls back to campaign month, record order, retrieval time or the current clock. The corpus audit is in [PUBLICATION_AUDIT.md](PUBLICATION_AUDIT.md).
+
 ## Files changed in this phase
 
 - Added `src/data/source-captures.json`.

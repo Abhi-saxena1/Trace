@@ -46,7 +46,7 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
       return <article className="source-entry" id={item.id} key={item.id}>
         <p className="eyebrow accent">{item.platform} / {item.source_section.replaceAll("_", " ")}</p>
         <h2>{item.author ?? "Author unavailable"}</h2>
-        <p className="research-note">{item.author_handle ?? ""} · Published: {item.published_at ?? "exact date unavailable"} · Reviewed: {item.retrieved_at ?? "not retrieved"}</p>
+        <p className="research-note">{item.author_handle ?? ""} · Published: {item.publication.published_at ?? "unavailable"} · {item.publication.precision} / {item.publication.verification_status} · Reviewed: {item.retrieved_at ?? "not retrieved"}</p>
         <p className="research-note">{contentEvidenceState(item)}{item.launch_event_id ? ` · Event: ${item.launch_event_id}` : ""}</p>
         {item.text && item.verified && item.source_capture_id ? <SourceQuote span={spanFor(item, 0, item.text.length)} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /> : <a className="text-link" href={item.source_url} target="_blank" rel="noreferrer">Inspect source ↗</a>}
         <SourceVerificationDetails><p className="research-note">{item.verification_note}</p></SourceVerificationDetails>

@@ -22,16 +22,39 @@ export function SourceVerificationDetails({ children }: { children: ReactNode })
   </details>;
 }
 
+function sequenceLabel(order: LaunchMechanics["sequence"]["order"]) {
+  if (order === "x_first") return "X → LinkedIn";
+  if (order === "linkedin_first") return "LinkedIn → X";
+  if (order === "same_day") return "Same day / order unresolved";
+  return "Unresolved";
+}
+
+function publicationLabel(value: string | null, precision: LaunchMechanics["content"][number]["publication"]["precision"]) {
+  if (!value) return "unavailable";
+  if (precision === "day") return value;
+  return new Date(value).toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC").replace("Z", " UTC");
+}
+
+function deltaLabel(deltaMinutes: number) {
+  const seconds = Math.round(deltaMinutes * 60);
+  const hours = Math.floor(seconds / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  const remainder = seconds % 60;
+  return `+${[hours ? `${hours}h` : "", minutes ? `${minutes}m` : "", remainder || (!hours && !minutes) ? `${remainder}s` : ""].filter(Boolean).join(" ")}`;
+}
+
 export function LaunchMechanicsView({ mechanics, research, compactLimitations = false }: { mechanics: LaunchMechanics; research: ResearchSnapshot; compactLimitations?: boolean }) {
   const company = mechanics.campaign_ids.map(id => research.dataset.campaigns.find(c => c.id === id)?.company ?? id).join(" + ");
   return <article id={mechanics.event_id} className="evidence-item launch-mechanics-item">
     <h3>{company} / {mechanics.event_id}</h3>
-    <p className="eyebrow">Platform sequence: {mechanics.platform_sequence.replaceAll("_", " ")} · {mechanics.sequence_basis.replaceAll("_", " ")}</p>
+    <p className="eyebrow">Platform sequence: {sequenceLabel(mechanics.sequence.order)} · {mechanics.sequence.precision} precision</p>
     <ul className="limitations">{mechanics.content.map(item => <li key={item.content_item_id}>
       <Link href={`/launches/${mechanics.campaign_ids[0]}#${item.content_item_id}`}>{item.platform ?? "Unknown platform"}</Link>
-      {` · Published: ${item.timestamp ?? "unavailable"} · Sequence position: ${item.sequence_position ?? "unavailable"} · Delta: ${item.time_delta_minutes === null ? "unavailable" : `${item.time_delta_minutes} minutes`}`}
+      {` · Published: ${publicationLabel(item.publication.published_at, item.publication.precision)} · ${item.publication.precision} / ${item.publication.verification_status} · Sequence position: ${item.sequence_position ?? "unavailable"}`}
       {" · "}<a href={item.source_url} target="_blank" rel="noreferrer">Source ↗</a>
+      <SourceVerificationDetails><p className="research-note">{item.publication.evidence}</p></SourceVerificationDetails>
     </li>)}</ul>
+    <p className="research-note"><strong>Timing:</strong> {mechanics.sequence.explanation}{mechanics.sequence.delta_minutes !== null ? ` Delta: ${deltaLabel(mechanics.sequence.delta_minutes)}.` : " Delta: unavailable."}</p>
     {mechanics.participation.map(item => <div key={`${item.content_item_id}:${item.mechanism}`}>
       <p className="research-note">Participation mechanism / {item.mechanism.replaceAll("_", " ")}</p>
       <SourceQuote span={item.evidence} capture={research.dataset.captures.find(c => c.id === item.evidence.capture_id)} />
@@ -43,7 +66,7 @@ export function LaunchMechanicsView({ mechanics, research, compactLimitations = 
         return <div key={`${span.content_item_id}:${span.start}`}><p className="eyebrow accent">{content?.platform ?? "Source"} evidence</p><SourceQuote span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} /></div>;
       })}</div>
     </div>)}
-    {!compactLimitations && <p className="research-note">{mechanics.limitations.join(" ")}</p>}
+    {!compactLimitations && <p className="research-note">{mechanics.limitations.slice(1).join(" ")}</p>}
   </article>;
 }
 
