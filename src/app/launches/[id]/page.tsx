@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getResearch } from "@/lib/research";
 import { PageIntro } from "@/components/editorial";
-import { LaunchMechanicsView, PublicResponseView, SourceQuote } from "@/components/research-evidence";
+import { LaunchMechanicsView, PublicResponseView, SourceQuote, SourceVerificationDetails } from "@/components/research-evidence";
 import { spanFor } from "@/lib/research/extraction/deterministic";
 import { contentEvidenceState } from "@/lib/research/source-text";
 
@@ -27,8 +27,9 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
   const responses = (research.dataset.responses ?? []).filter(item => item.campaign_id === id);
   return <>
     <PageIntro number={campaign.launch_date ?? "—"} label="Portfolio month" title={campaign.company} description={campaign.description ?? "A source dossier: published material, retained excerpts and deterministic interpretations."} />
-    <p className="research-note">{campaign.provenance.note}</p>
+    <p className="research-note dossier-product"><span className="eyebrow">Product:</span> {campaign.product ?? "Not stated in source"}</p>
     {campaign.campaign_url && <a className="text-link" href={campaign.campaign_url} target="_blank" rel="noreferrer">Open portfolio source ↗</a>}
+    <SourceVerificationDetails><p className="research-note">{campaign.provenance.note}</p></SourceVerificationDetails>
     <section className="pattern-entry" aria-label="Launch mechanics"><p className="eyebrow accent">Inferred analysis / Launch mechanics</p><h2>How the observed launch material relates</h2>
       {mechanics.map(item => <LaunchMechanicsView key={item.event_id} mechanics={item} research={research} />)}
     </section>
@@ -44,7 +45,7 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
         <p className="research-note">{item.author_handle ?? ""} · Published: {item.published_at ?? "exact date unavailable"} · Reviewed: {item.retrieved_at ?? "not retrieved"}</p>
         <p className="research-note">{contentEvidenceState(item)}{item.launch_event_id ? ` · Event: ${item.launch_event_id}` : ""}</p>
         {item.text && item.verified && item.source_capture_id ? <SourceQuote span={spanFor(item, 0, item.text.length)} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /> : <a className="text-link" href={item.source_url} target="_blank" rel="noreferrer">Inspect source ↗</a>}
-        <p className="research-note">{item.verification_note}</p>
+        <SourceVerificationDetails><p className="research-note">{item.verification_note}</p></SourceVerificationDetails>
         <p className="eyebrow">Text: {item.text_scope} · Public response: {responses.some(response => response.content_item_id === item.id && response.verification_state === "verified_source_data") ? "verified snapshot" : "unavailable"}</p>
         {extraction && <details><summary>Inspect extraction — interpretations, not source facts</summary>
           <dl className="extraction-fields">{Object.entries(extraction.fields).map(([field, observation]) => <div key={field}>

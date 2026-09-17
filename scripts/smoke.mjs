@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 
 const base = process.env.TRACE_TEST_URL ?? "http://localhost:3000";
+const withoutReactMarkers = html => html.replaceAll(/<!--.*?-->/g, "");
+const pageText = html => withoutReactMarkers(html).replaceAll(/<[^>]*>/g, "");
 const routes = ["/", "/launches", "/patterns", "/network", "/signal", "/ask"];
 for (const route of routes) {
   const response = await fetch(new URL(route, base));
@@ -37,12 +39,18 @@ for (const id of research.signal.supporting_evidence) {
   assert.ok(signalPage.includes(escapeHtml(evidence.span.quote)));
 }
 for (const limitation of research.signal.limitations) assert.ok(signalPage.includes(escapeHtml(limitation)));
+const homePage = await (await fetch(new URL("/", base))).text();
+assert.match(pageText(homePage), /13\s*\/\s*15\s*social items with response snapshots/);
+const launchIndex = await (await fetch(new URL("/launches", base))).text();
+assert.match(pageText(launchIndex), /Product: Not stated in source/);
 for (const campaign of research.dataset.campaigns) {
   const page = await fetch(new URL(`/launches/${campaign.id}`, base));
   assert.equal(page.status, 200, campaign.id);
   const dossier = await page.text();
   assert.ok(dossier.includes(campaign.campaign_url), `${campaign.id} source citation`);
   assert.match(dossier, /PUBLIC RESPONSE/i);
+  assert.ok(pageText(dossier).includes(`Product: ${campaign.product ?? "Not stated in source"}`), `${campaign.id} product presentation`);
+  assert.match(dossier, /<details class="verification-details"><summary>Source verification details<\/summary>/);
   for (const response of research.dataset.responses.filter(item => item.campaign_id === campaign.id)) {
     assert.ok(dossier.includes(escapeHtml(response.source_url)), `${response.id} metric source`);
     for (const metric of response.metrics) assert.ok(dossier.includes(metric.display_value), `${response.id} ${metric.type}`);

@@ -21,7 +21,7 @@ export function LaunchIndex({ campaigns, content }: { campaigns: Campaign[]; con
     <div className="index-caption eyebrow"><span>Campaign / Portfolio month / Source coverage</span><span role="status">{visible.length} of {campaigns.length} campaigns</span></div>
     {filtered && <button className="text-link reset-button" onClick={() => { setQuery(""); setPlatform("All sources"); }}>Clear filters <span aria-hidden="true">↗</span></button>}
     {visible.length ? <ol className="campaign-index">{visible.map(campaign => <li key={campaign.id}>
-      <div><Link href={`/launches/${campaign.id}`} className="campaign-title">{campaign.company} <span aria-hidden="true">↗</span></Link><p>{campaign.product ? `Product: ${campaign.product}` : "Product not specified"}</p></div>
+      <div><Link href={`/launches/${campaign.id}`} className="campaign-title">{campaign.company} <span aria-hidden="true">↗</span></Link><p>Product: {campaign.product ?? "Not stated in source"}</p></div>
       <span className="eyebrow">{campaign.launch_date ?? "Date unknown"}</span>
       <div><p>{campaign.content_item_ids.length} source records</p><span className="eyebrow">{campaign.provenance.status === "source_verified" ? "Portfolio verified · excerpt coverage" : "Verification pending"}</span></div>
     </li>)}</ol> : <EmptyState label="No matches" title="No campaigns match these filters."><p>Try another company name or source platform.</p></EmptyState>}

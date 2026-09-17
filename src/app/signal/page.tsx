@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageIntro, SectionLink } from "@/components/editorial";
 import { getResearch } from "@/lib/research";
-import { LaunchMechanicsView, PublicResponseView, SourceQuote } from "@/components/research-evidence";
+import { LaunchMechanicsView, PublicResponseView, SourceQuote, SourceVerificationDetails } from "@/components/research-evidence";
 import { presentSignal } from "@/lib/research/signal/presentation";
 import { contentEvidenceState } from "@/lib/research/source-text";
 
@@ -69,7 +69,7 @@ export default async function Signal() {
           <p className="research-note">{contentEvidenceState(content)} · {content.text_scope} · {content.source_section.replaceAll("_", " ")}</p>
           {evidence.map(claim => <div key={claim.id}><p>{claim.observation}</p><p className="eyebrow">{claim.basis.replaceAll("_", " ")} · Inferred pattern support</p></div>)}
           <SourceQuote span={span} capture={capture} />
-          <p className="research-note">{content.verification_note}</p>
+          <SourceVerificationDetails><p className="research-note">{content.verification_note}</p></SourceVerificationDetails>
         </article>)}
       </section>
 

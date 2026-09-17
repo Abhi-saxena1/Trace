@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { LaunchMechanics, Pattern, PublicResponseRecord, ResearchSnapshot, SourceSpan, SourceCapture } from "@/lib/research/types";
 import { isVerifiedQuote } from "@/lib/research/source-text";
 import { spanFor } from "@/lib/research/extraction/deterministic";
@@ -14,7 +15,14 @@ export function SourceQuote({ span, capture }: { span: SourceSpan; capture?: Sou
   </figure>;
 }
 
-export function LaunchMechanicsView({ mechanics, research }: { mechanics: LaunchMechanics; research: ResearchSnapshot }) {
+export function SourceVerificationDetails({ children }: { children: ReactNode }) {
+  return <details className="verification-details">
+    <summary>Source verification details</summary>
+    <div className="verification-details-body">{children}</div>
+  </details>;
+}
+
+export function LaunchMechanicsView({ mechanics, research, compactLimitations = false }: { mechanics: LaunchMechanics; research: ResearchSnapshot; compactLimitations?: boolean }) {
   const company = mechanics.campaign_ids.map(id => research.dataset.campaigns.find(c => c.id === id)?.company ?? id).join(" + ");
   return <article className="evidence-item">
     <h3>{company} / {mechanics.event_id}</h3>
@@ -32,7 +40,7 @@ export function LaunchMechanicsView({ mechanics, research }: { mechanics: Launch
       <p>{item.description}</p><p className="eyebrow">Inferred analysis / {item.kind.replaceAll("_", " ")}</p>
       {item.evidence.map(span => <SourceQuote key={`${span.content_item_id}:${span.start}`} span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} />)}
     </div>)}
-    <p className="research-note">{mechanics.limitations.join(" ")}</p>
+    {!compactLimitations && <p className="research-note">{mechanics.limitations.join(" ")}</p>}
   </article>;
 }
 
@@ -42,30 +50,44 @@ export function PublicResponseView({ records }: { records: PublicResponseRecord[
     {record.verification_state === "verified_source_data" ? <>
       <p className="eyebrow accent">Verified snapshot / Observed {record.observed_at}</p>
       <dl className="extraction-fields">{record.metrics.map(metric => <div key={metric.type}>
-        <dt>{metric.type}</dt><dd>{metric.display_value}{metric.precision === "abbreviated" && <p className="research-note">Displayed abbreviation; no exact integer inferred.</p>}</dd>
+        <dt>{metric.type}</dt><dd>{metric.display_value}</dd>
       </div>)}</dl>
     </> : <>
       <p className="eyebrow">Engagement not verified / {record.verification_state.replaceAll("_", " ")}</p>
       <p>No verified public engagement snapshot is currently available for this content item.</p>
     </>}
-    <p className="research-note">{record.note}</p>
     <a className="text-link" href={record.source_url} target="_blank" rel="noreferrer">Inspect metric source ↗</a>
+    <SourceVerificationDetails>
+      <p className="research-note">{record.note}</p>
+      {record.metrics.some(metric => metric.precision === "abbreviated") && <p className="research-note">Displayed abbreviations are preserved exactly; no integer value is inferred.</p>}
+    </SourceVerificationDetails>
   </article>)}</div>;
+}
+
+function isSharedPatternLimitation(limitation: string) {
+  return /purposively selected|representative sample|excerpts were selected manually|only retained excerpts|unknown coverage|cross-posts|no visual inspection/i.test(limitation);
+}
+
+function limitationLabel(limitation: string) {
+  if (/timestamp|publication sequence|time delta/i.test(limitation)) return "Timing limitation";
+  if (/transform|visual|creator/i.test(limitation)) return "Transformation limitation";
+  if (/response|performance/i.test(limitation)) return "Response limitation";
+  return "Interpretation limitation";
 }
 
 export function PatternEvidence({ pattern, research }: { pattern: Pattern; research: ResearchSnapshot }) {
   const name = (id: string) => research.dataset.campaigns.find(c => c.id === id)?.company ?? id;
   const items = pattern.supporting_content.map(id => research.dataset.content.find(c => c.id === id)!);
   const responseCoverage = new Set((research.dataset.responses ?? []).filter(response => response.verification_state === "verified_source_data" && pattern.supporting_content.includes(response.content_item_id)).map(response => response.content_item_id)).size;
+  const specificLimitations = pattern.limitations.filter(limitation => !isSharedPatternLimitation(limitation));
   return <article id={pattern.id} className="pattern-entry">
     <p className="eyebrow accent">{pattern.confidence} / Inferred analysis</p>
     <h2>{pattern.title}</h2>
     <p>{pattern.description}</p>
     <p className="research-note">{pattern.confidence_reason}</p>
     <p className="eyebrow">{pattern.supporting_campaigns.length} campaigns · {pattern.supporting_events.length} launch events · {items.length} platform items</p>
-    <p className="research-note">Platform versions of one event are not independent evidence.</p>
-    <p className="research-note">Public-response coverage: {responseCoverage} / {pattern.supporting_content.length} supporting content items. {research.performance.comparative_state === "insufficient" ? "Insufficient comparable public-response coverage for performance analysis." : "Comparative response evidence available."}</p>
-    <details><summary>Inspect launch mechanics</summary>{pattern.supporting_events.map(id => <LaunchMechanicsView key={id} mechanics={research.mechanics.find(item => item.event_id === id)!} research={research} />)}</details>
+    <p className="research-note">Public-response coverage: {responseCoverage} / {pattern.supporting_content.length} supporting content items.</p>
+    <details><summary>Inspect launch mechanics</summary>{pattern.supporting_events.map(id => <LaunchMechanicsView key={id} mechanics={research.mechanics.find(item => item.event_id === id)!} research={research} compactLimitations />)}</details>
     <details>
       <summary>Inspect supporting evidence and source links</summary>
       {items.map(item => {
@@ -75,7 +97,7 @@ export function PatternEvidence({ pattern, research }: { pattern: Pattern; resea
           <p className="research-note">{item.source_section === "video_transcript" ? "Video transcript excerpt" : "Post excerpt"} · {item.text_scope}</p>
           <p className="research-note">{evidence.map(e => e.observation).join(" · ")}</p>
           <SourceQuote span={spanFor(item, 0, item.text!.length)} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} />
-          <p className="research-note">{item.verification_note}</p>
+          <SourceVerificationDetails><p className="research-note">{item.verification_note}</p></SourceVerificationDetails>
         </div>;
       })}
     </details>
@@ -93,6 +115,6 @@ export function PatternEvidence({ pattern, research }: { pattern: Pattern; resea
       <p className="research-note">{new Set(pattern.counterexamples.map(c => c.campaign_id)).size} campaign(s) with counterevidence. Missing material is not counted as a counterexample.</p>
       {pattern.counterexamples.filter(example => example.kind === "contradicts").flatMap(example => example.spans.map(span => <SourceQuote key={`${span.content_item_id}:${span.start}`} span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} />))}
     </details>
-    <details><summary>Limitations</summary><ul className="limitations">{pattern.limitations.map(limit => <li key={limit}>{limit}</li>)}</ul></details>
+    {specificLimitations.length > 0 && <details><summary>Pattern-specific limitations</summary><ul className="limitations">{specificLimitations.map(limit => <li key={limit}><strong>{limitationLabel(limit)}:</strong> {limit}</li>)}</ul></details>}
   </article>;
 }

@@ -171,6 +171,15 @@ textarea { width: 100%; padding: 22px; font-size: 18px; line-height: 1.7; resize
 details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
 summary { cursor: pointer; color: var(--foreground); font-size: 13px; line-height: 1.8; padding: 5px 0; }
 summary:hover { color: var(--accent); }
+.verification-details { margin-top: 12px; padding-top: 10px; }
+.verification-details summary { color: var(--muted); font-size: 12px; }
+.verification-details-body { max-width: 850px; padding-left: 16px; border-left: 1px solid var(--line); }
+.verification-details-body .research-note { margin-block: 8px; }
+.dossier-product { margin-bottom: 2px; }
+.dossier-product .eyebrow { color: var(--muted); }
+.pattern-methodology { margin-bottom: 12px; }
+.pattern-methodology > div { display: grid; gap: 8px; }
+.pattern-methodology strong, .limitations strong { color: var(--foreground); font-weight: 400; }
 .evidence-item { padding-block: 20px; border-bottom: 1px solid var(--line); }
 .evidence-item > a { font-size: 15px; }
 .evidence-item h2 { font-size: 20px; }
