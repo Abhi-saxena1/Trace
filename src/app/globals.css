@@ -194,6 +194,8 @@ summary:hover { color: var(--accent); }
 .limitations li { margin-block: 10px; }
 .extraction-fields > div { padding-block: 18px; border-bottom: 1px solid var(--line); }
 .extraction-fields dd { line-height: 1.8; font-size: 14px; }
+.extraction-unavailable { padding-block: 18px; border-bottom: 1px solid var(--line); }
+.extraction-unavailable .research-note { text-transform: capitalize; }
 .sequence-list { display: flex; flex-wrap: wrap; gap: 12px 25px; padding: 0; list-style-position: inside; margin-block: 15px; font-size: 13px; }
 .relationship-index { margin-top: 25px; }
 .relationship-row { display: grid; grid-template-columns: 1fr 2fr; gap: 35px; padding: 25px; border-top: 1px solid var(--line); background: var(--background); }

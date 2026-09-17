@@ -24,7 +24,7 @@ export function spanFor(item: ContentItem, start: number, end: number): SourceSp
 /** Rules label observable language, not business performance or the truth of claims. */
 export class DeterministicExtractor implements ExtractionProvider {
   readonly id = "trace-lexical";
-  readonly version = "1.0.0";
+  readonly version = "1.1.0";
 
   extract(item: ContentItem): Extraction {
     const fields = Object.fromEntries(extractionFields.map(field => [field, null])) as Extraction["fields"];
@@ -46,16 +46,21 @@ export class DeterministicExtractor implements ExtractionProvider {
         if (!fields.hook) observe("hook", "Question opening", "opening-question", /^[^?\n]+\?/);
       }
       observe("core_claim", "Author makes a financial milestone claim", "financial-claim", /(?:raised\s+\$[\d.]+[MBK]?|\$[\d.]+[MBK]?\s+ARR)\b/i);
+      if (!fields.core_claim) observe("core_claim", "Explicit product capability claim", "product-capability-claim", /\bputs?\b[^.!?\n]{0,120}\bon autopilot\b/i);
+      if (!fields.core_claim) observe("core_claim", "Explicit product launch claim", "product-launch-claim", /(?:\bIntroducing(?::\s*|\s+)|\b(?:we['’]re|we are)\s+introducing\s+|\b(?:excited|I['’]m excited|I am excited)\s+to introduce\s+)[^.!?\n]+/i);
+      if (!fields.core_claim) observe("core_claim", "Explicit promotional offer claim", "promotional-offer-claim", /\bgiving away\b[^.!?\n]{0,140}\b(?:free|to get it)\b[^.!?\n]*/i);
+      if (!fields.core_claim) observe("core_claim", "Explicit personal challenge claim", "personal-challenge-claim", /(?:\bWe could['’]?ve died\b[^.!?\n]*|\bhow embarrassing (?:our|the) (?:start|beginning|origin) was\b)/i);
       observe("proof_type", "Financial milestone used as a credibility cue", "financial-proof", /(?:raised\s+\$[\d.]+[MBK]?|\$[\d.]+[MBK]?\s+ARR)\b/i);
       if (!fields.proof_type) observe("proof_type", "Named investor backing used as a credibility cue", "backer-proof", /backed by [^.!?\n]+/i);
       observe("narrative_structure", "Previously untold personal story framing", "untold-story", /(?:story[^.!?\n]{0,45}never told[^.!?\n]*|never shared this before[^.!?\n]*)/i);
       observe("positioning", "First-in-category language", "category-first", /(?:world['’]s\s+)?first\s+(?:AI\s+[^.!?\n]+|Engineering World Model)/i);
       observe("audience", "Enterprise application context is explicit", "enterprise-audience", /internal enterprise apps/i);
+      if (!fields.audience) observe("audience", "Successful existing users are explicitly referenced", "successful-user-audience", /\bour most successful users\b/i);
       observe("emotional_trigger", "Embarrassment is explicitly named", "named-embarrassment", /embarrassing[^.!?\n]*/i);
       observe("product_mechanism", "Code workflow automation is claimed", "code-automation", /debugging, fixing, and testing your code on autopilot/i);
       observe("creator_role", "Speaker explicitly identifies as a founder", "explicit-founder", /(?:I['’]m|I am)[^.!?\n]{0,30}\bfounder\b[^.!?\n]*/i);
       observe("visual_strategy", "Speaker describes an AI-generated presenter", "explicit-ai-presenter", /(?:I['’]m|I am) AI generated/i);
-      observe("CTA", "Request to comment", "comment-cta", /\bcomment\b[^.!?\n]*/i);
+      observe("CTA", "Request to comment", "comment-cta", /(?:\blike,\s*repost and comment\b|\bcomment\b)[^.!?\n]*/i);
       if (!fields.CTA) observe("CTA", "Direct trial or download request", "trial-cta", /\b(?:download now|try for free|book a demo)\b[^.!?\n]*/i);
       // Both the action and promised delivery must be in the same contiguous excerpt.
       if (!/\b(?:do not|don['’]t|never)\s+comment\b/i.test(text)) {

@@ -93,8 +93,18 @@ test("current corpus runs extraction and preserves supported Cartesia, Gamma and
 
   const iconX = result.extractions.find(item => item.content_item_id === "icon-x")!;
   assert.equal(iconX.fields.hook?.value, "Product introduction opening");
+  assert.equal(iconX.fields.core_claim?.value, "Explicit product launch claim");
   assert.equal(iconX.fields.positioning?.value, "First-in-category language");
   assert.equal(iconX.fields.positioning?.evidence.quote, "First AI Admaker");
+
+  assert.equal(result.extractions.find(item => item.content_item_id === "playerzero-x")!.fields.core_claim?.value, "Explicit product capability claim");
+  assert.equal(result.extractions.find(item => item.content_item_id === "wispr-flow-linkedin")!.fields.core_claim?.value, "Explicit promotional offer claim");
+  assert.equal(result.extractions.find(item => item.content_item_id === "airwallex-x")!.fields.core_claim?.value, "Explicit personal challenge claim");
+  assert.equal(result.extractions.find(item => item.content_item_id === "deel-x")!.fields.core_claim?.value, "Explicit personal challenge claim");
+  assert.equal(result.extractions.find(item => item.content_item_id === "gamma-linkedin")!.fields.audience?.evidence.quote, "our most successful users");
+  assert.ok(result.dataset.campaigns.every(campaign => result.extractions
+    .filter(extraction => result.dataset.content.find(item => item.id === extraction.content_item_id)?.campaign_id === campaign.id)
+    .some(extraction => Object.values(extraction.fields).some(Boolean))));
 });
 
 test("all observations reproduce their exact retained source offsets", async () => {
@@ -180,7 +190,7 @@ test("missing extraction stages stay null, excerpt middles are not called hooks"
   assert.equal(extracted.fields.hook, null);
   assert.equal(extracted.fields.visual_strategy, null);
   assert.equal(extracted.sequence.stages.proof, null);
-  assert.deepEqual(extracted.sequence.observed_order, ["CTA"]);
+  assert.deepEqual(extracted.sequence.observed_order, ["claim", "CTA"]);
 });
 
 test("sequence order follows source positions, not a predetermined launch template", () => {

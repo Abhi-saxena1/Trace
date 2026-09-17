@@ -60,7 +60,8 @@ for (const campaign of research.dataset.campaigns) {
 const cartesiaDossier = await (await fetch(new URL("/launches/cartesia", base))).text();
 assert.match(cartesiaDossier, /Funding announcement opening/);
 assert.match(cartesiaDossier, /Author makes a financial milestone claim/);
-assert.match(cartesiaDossier, /Not established from available evidence/);
+assert.match(cartesiaDossier, /Not established from this source/);
+assert.match(cartesiaDossier, /Evidence-backed interpretations for this source item/);
 assert.equal((await fetch(new URL("/launches/not-a-campaign", base))).status, 404);
 const ask = (body, headers = { "Content-Type": "application/json" }) => fetch(new URL("/api/ask", base), {
   method: "POST", headers, body,

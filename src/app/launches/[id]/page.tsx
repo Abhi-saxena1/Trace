@@ -39,6 +39,8 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
     </section>
     <section className="dossier" aria-label="Campaign sources">{items.map(item => {
       const extraction = research.extractions.find(e => e.content_item_id === item.id);
+      const establishedFields = extraction ? Object.entries(extraction.fields).filter(([, observation]) => observation !== null) : [];
+      const unavailableFields = extraction ? Object.entries(extraction.fields).filter(([, observation]) => observation === null).map(([field]) => field.replaceAll("_", " ")) : [];
       return <article className="source-entry" id={item.id} key={item.id}>
         <p className="eyebrow accent">{item.platform} / {item.source_section.replaceAll("_", " ")}</p>
         <h2>{item.author ?? "Author unavailable"}</h2>
@@ -48,9 +50,14 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
         <SourceVerificationDetails><p className="research-note">{item.verification_note}</p></SourceVerificationDetails>
         <p className="eyebrow">Text: {item.text_scope} · Public response: {responses.some(response => response.content_item_id === item.id && response.verification_state === "verified_source_data") ? "verified snapshot" : "unavailable"}</p>
         {extraction && <details><summary>Inspect extraction — interpretations, not source facts</summary>
-          <dl className="extraction-fields">{Object.entries(extraction.fields).map(([field, observation]) => <div key={field}>
-            <dt>{field.replaceAll("_", " ")}</dt><dd>{observation ? <>{observation.value}<p className="research-note">{observation.basis.replaceAll("_", " ")} · {observation.rule_id}</p><SourceQuote span={observation.evidence} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /></> : "Not established from available evidence"}</dd>
-          </div>)}</dl>
+          <p className="research-note">Evidence-backed interpretations for this source item.</p>
+          <dl className="extraction-fields">{establishedFields.map(([field, observation]) => {
+            if (!observation) return null;
+            return <div key={field}>
+              <dt>{field.replaceAll("_", " ")}</dt><dd>{observation.value}<p className="research-note">{observation.basis.replaceAll("_", " ")} · {observation.rule_id}</p><SourceQuote span={observation.evidence} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /></dd>
+            </div>;
+          })}</dl>
+          {unavailableFields.length > 0 && <div className="extraction-unavailable"><p className="eyebrow">Not established from this source</p><p className="research-note">{unavailableFields.join(" · ")}</p></div>}
           <h3>Observed sequence cues</h3><p className="research-note">{extraction.sequence.limitation}</p>
           <ol className="sequence-list">{extraction.sequence.observed_order.map(stage => <li key={stage}>{stage} <span className="research-note">at character {extraction.sequence.stages[stage]!.start}</span></li>)}</ol>
           <p className="research-note">Missing stages: {Object.entries(extraction.sequence.stages).filter(([, value]) => value === null).map(([stage]) => stage).join(", ") || "none"}.</p>
