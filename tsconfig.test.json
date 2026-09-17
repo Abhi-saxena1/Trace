@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": ".test-output",
+    "rootDir": "."
+  },
+  "include": ["src/data/**/*.ts", "src/lib/research/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", ".next", ".test-output"]
+}
