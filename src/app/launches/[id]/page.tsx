@@ -49,7 +49,7 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
         <p className="eyebrow">Text: {item.text_scope} · Public response: {responses.some(response => response.content_item_id === item.id && response.verification_state === "verified_source_data") ? "verified snapshot" : "unavailable"}</p>
         {extraction && <details><summary>Inspect extraction — interpretations, not source facts</summary>
           <dl className="extraction-fields">{Object.entries(extraction.fields).map(([field, observation]) => <div key={field}>
-            <dt>{field.replaceAll("_", " ")}</dt><dd>{observation ? <>{observation.value}<p className="research-note">{observation.basis.replaceAll("_", " ")} · {observation.rule_id}</p><SourceQuote span={observation.evidence} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /></> : "Not established (null)"}</dd>
+            <dt>{field.replaceAll("_", " ")}</dt><dd>{observation ? <>{observation.value}<p className="research-note">{observation.basis.replaceAll("_", " ")} · {observation.rule_id}</p><SourceQuote span={observation.evidence} capture={research.dataset.captures.find(c => c.id === item.source_capture_id)} /></> : "Not established from available evidence"}</dd>
           </div>)}</dl>
           <h3>Observed sequence cues</h3><p className="research-note">{extraction.sequence.limitation}</p>
           <ol className="sequence-list">{extraction.sequence.observed_order.map(stage => <li key={stage}>{stage} <span className="research-note">at character {extraction.sequence.stages[stage]!.start}</span></li>)}</ol>

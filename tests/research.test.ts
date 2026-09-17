@@ -71,6 +71,32 @@ test("reviewed dataset has 9 campaigns, 24 sources, 14 exact captures and one wi
   assert.ok(result.dataset.content.filter(c => c.platform === "LinkedIn").every(c => c.published_at === null));
 });
 
+test("current corpus runs extraction and preserves supported Cartesia, Gamma and Icon fields", async () => {
+  const result = await runResearch(seedDataset);
+  assert.equal(result.extractions.length, 14);
+
+  const cartesiaX = result.extractions.find(item => item.content_item_id === "cartesia-x")!;
+  assert.equal(cartesiaX.fields.hook?.value, "Funding announcement opening");
+  assert.equal(cartesiaX.fields.core_claim?.value, "Author makes a financial milestone claim");
+  assert.equal(cartesiaX.fields.core_claim?.evidence.quote, "raised $100M");
+  assert.equal(cartesiaX.fields.narrative_structure, null);
+  assert.equal(cartesiaX.fields.audience, null);
+  assert.equal(cartesiaX.fields.positioning, null);
+
+  const cartesiaLinkedIn = result.extractions.find(item => item.content_item_id === "cartesia-linkedin")!;
+  assert.equal(cartesiaLinkedIn.fields.CTA?.value, "Request to comment");
+  assert.equal(cartesiaLinkedIn.fields.launch_mechanism?.value, "Public comment tied to resource or benefit delivery");
+
+  const gammaX = result.extractions.find(item => item.content_item_id === "gamma-x")!;
+  assert.equal(gammaX.fields.core_claim?.evidence.quote, "$100M ARR");
+  assert.equal(gammaX.fields.proof_type?.value, "Financial milestone used as a credibility cue");
+
+  const iconX = result.extractions.find(item => item.content_item_id === "icon-x")!;
+  assert.equal(iconX.fields.hook?.value, "Product introduction opening");
+  assert.equal(iconX.fields.positioning?.value, "First-in-category language");
+  assert.equal(iconX.fields.positioning?.evidence.quote, "First AI Admaker");
+});
+
 test("all observations reproduce their exact retained source offsets", async () => {
   const result = await runResearch(seedDataset);
   validateExtractions(seedDataset, result.extractions);

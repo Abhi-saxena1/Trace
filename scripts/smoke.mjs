@@ -51,11 +51,16 @@ for (const campaign of research.dataset.campaigns) {
   assert.match(dossier, /PUBLIC RESPONSE/i);
   assert.ok(pageText(dossier).includes(`Product: ${campaign.product ?? "Not stated in source"}`), `${campaign.id} product presentation`);
   assert.match(dossier, /<details class="verification-details"><summary>Source verification details<\/summary>/);
+  assert.ok(!dossier.includes("Not established (null)"), `${campaign.id} hides implementation null wording`);
   for (const response of research.dataset.responses.filter(item => item.campaign_id === campaign.id)) {
     assert.ok(dossier.includes(escapeHtml(response.source_url)), `${response.id} metric source`);
     for (const metric of response.metrics) assert.ok(dossier.includes(metric.display_value), `${response.id} ${metric.type}`);
   }
 }
+const cartesiaDossier = await (await fetch(new URL("/launches/cartesia", base))).text();
+assert.match(cartesiaDossier, /Funding announcement opening/);
+assert.match(cartesiaDossier, /Author makes a financial milestone claim/);
+assert.match(cartesiaDossier, /Not established from available evidence/);
 assert.equal((await fetch(new URL("/launches/not-a-campaign", base))).status, 404);
 const ask = (body, headers = { "Content-Type": "application/json" }) => fetch(new URL("/api/ask", base), {
   method: "POST", headers, body,
