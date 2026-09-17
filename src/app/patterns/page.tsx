@@ -5,7 +5,7 @@ import { PatternEvidence } from "@/components/research-evidence";
 export const metadata: Metadata = { title: "Patterns" };
 export default async function Patterns() {
   const research = await getResearch();
-  return <><PageIntro compact number="02" label="The pattern index" title="Beyond the one-off." description="Recurring structures in the loaded source excerpts. Descriptive interpretations, with evidence and missing coverage exposed." />
+  return <><PageIntro compact number="02" label="The pattern index" title="Recurring structures in the evidence." description="Recurring structures in the loaded source excerpts. Descriptive interpretations, with evidence and missing coverage exposed." />
     <section aria-label="Pattern index"><div className="index-caption eyebrow"><span>Rule-based findings / No causal claims</span><span>{research.patterns.length} recurring patterns</span></div>
       {research.patterns.length ? research.patterns.map(pattern => <PatternEvidence key={pattern.id} pattern={pattern} research={research} />)
         : <EmptyState label="No recurring matches" title="Repetition needs evidence."><p>No rule currently matches material from at least two distinct campaigns.</p></EmptyState>}

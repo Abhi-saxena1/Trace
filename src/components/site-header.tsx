@@ -16,7 +16,7 @@ export function SiteHeader() {
       </div>
       <nav aria-label="Main navigation" className="navigation">
         {navigation.map(([label, href]) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}>{label}</Link>)}
-        <span className="nav-note eyebrow">An ongoing investigation</span>
+        <span className="nav-note eyebrow" aria-hidden="true" />
       </nav>
     </header>
   );

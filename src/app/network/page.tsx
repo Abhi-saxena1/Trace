@@ -5,7 +5,7 @@ import Link from "next/link";
 export const metadata: Metadata = { title: "Network" };
 export default async function Network() {
   const research = await getResearch();
-  return <><PageIntro number="03" label="The evidence graph" title="Nothing launches alone." description="Follow each campaign through its launch event, mechanics, content, platform, extraction, pattern, signal and original source. These are provenance relationships, not inferred social connections." />
+  return <><PageIntro number="03" label="The evidence graph" title="Follow the evidence." description="Follow each campaign through its launch event, mechanics, content, platform, extraction, pattern, signal and original source. These are provenance relationships, not inferred social connections." />
     <div className="index-caption eyebrow"><span>{research.graph.nodes.length} nodes / {research.graph.edges.length} relationships</span><a href="/api/research">Inspect research JSON ↗</a></div>
     <section className="network-stage relationship-index" aria-label="Evidence relationships">
       <p className="network-legend eyebrow">Campaign → Launch event → Mechanics → Content → Platform → Public response → Source → Pattern → Signal</p>
