@@ -1,5 +1,5 @@
 import { getResearch } from "@/lib/research";
-import { searchSources } from "@/lib/research/questions";
+import { queryDataset } from "@/lib/research/questions";
 
 export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.includes("application/json")) {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       || body.question.trim().length < 2 || body.question.trim().length > 500) {
       return Response.json({ error: "Use a question between 2 and 500 characters." }, { status: 400 });
     }
-    return Response.json(searchSources(await getResearch(), body.question));
+    return Response.json(queryDataset(await getResearch(), body.question));
   } catch (error) {
     if (error instanceof SyntaxError) return Response.json({ error: "Invalid JSON." }, { status: 400 });
     throw error;

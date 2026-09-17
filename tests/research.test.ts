@@ -5,7 +5,7 @@ import { seedDataset } from "../src/data/seed";
 import { runResearch } from "../src/lib/research/pipeline";
 import { DeterministicExtractor } from "../src/lib/research/extraction/deterministic";
 import { validateDataset, validateExtractions } from "../src/lib/research/validation";
-import { searchSources } from "../src/lib/research/questions";
+import { queryDataset, searchSources } from "../src/lib/research/questions";
 import type { ContentItem, Dataset, ExtractionProvider } from "../src/lib/research/types";
 import { canonicalizeSourceUrl } from "../src/lib/research/source-identity";
 import { isVerifiedQuote, contentEvidenceState } from "../src/lib/research/source-text";
@@ -258,6 +258,62 @@ test("source search returns real excerpts, never an invented answer", async () =
   assert.equal(searchSources(result, "zyxwvu-unseen").matches.length, 0);
   assert.throws(() => searchSources(result, "a"), /2 and 500/);
   assert.throws(() => searchSources(result, "a".repeat(501)), /2 and 500/);
+});
+
+test("exact credibility and participation question returns the validated structured match", async () => {
+  const result = queryDataset(await runResearch(seedDataset), "Which campaigns combine a credibility cue on X with a participation mechanism on LinkedIn?");
+  assert.equal(result.mode, "structured_pattern");
+  if (result.mode !== "structured_pattern") return;
+  assert.deepEqual(result.matches.map(match => match.campaign), ["Cartesia", "Gamma", "Icon"]);
+  assert.equal(result.coverage.matched, 3);
+});
+
+test("equivalent credibility-to-participation phrasings resolve to the same pattern", async () => {
+  const research = await runResearch(seedDataset);
+  for (const question of [
+    "Which campaigns have credibility on X and participation on LinkedIn?",
+    "Show campaigns combining X credibility with LinkedIn participation.",
+    "Which launches use this credibility-to-participation pattern?",
+  ]) {
+    const result = queryDataset(research, question);
+    assert.equal(result.mode, "structured_pattern", question);
+    if (result.mode === "structured_pattern") assert.deepEqual(result.matches.map(match => match.campaign_id), ["cartesia", "gamma", "icon"]);
+  }
+});
+
+test("dataset query preserves literal source retrieval for ordinary text searches", async () => {
+  const result = queryDataset(await runResearch(seedDataset), "raised $100M");
+  assert.equal(result.mode, "source_search");
+  if (result.mode === "source_search") assert.ok(result.matches.some(match => match.content_item_id === "cartesia-x"));
+});
+
+test("unsupported arbitrary questions do not fabricate a structured answer", async () => {
+  const result = queryDataset(await runResearch(seedDataset), "Which launch will dominate Mars next decade?");
+  assert.equal(result.mode, "source_search");
+  assert.equal(result.answer, null);
+  if (result.mode === "source_search") assert.equal(result.matches.length, 0);
+});
+
+test("structured query evidence retains exact source provenance", async () => {
+  const research = await runResearch(seedDataset);
+  const result = queryDataset(research, "Which launches use this credibility-to-participation pattern?");
+  assert.equal(result.mode, "structured_pattern");
+  if (result.mode !== "structured_pattern") return;
+  for (const match of result.matches) for (const evidence of [match.x, match.linkedin]) {
+    const content = research.dataset.content.find(item => item.id === evidence.content_item_id)!;
+    assert.equal(evidence.span.source_url, content.source_url);
+    assert.ok(isVerifiedQuote(evidence.span, evidence.capture));
+  }
+});
+
+test("structured query keeps insufficient coverage separate from counterevidence", async () => {
+  const result = queryDataset(await runResearch(seedDataset), "Which campaigns have credibility on X and participation on LinkedIn?");
+  assert.equal(result.mode, "structured_pattern");
+  if (result.mode !== "structured_pattern") return;
+  assert.equal(result.coverage.insufficient, 4);
+  assert.equal(result.coverage.counterevidence, 2);
+  assert.deepEqual(result.coverage.insufficient_campaigns.map(row => row.campaign_id), ["playerzero", "wispr-flow", "poly-ai", "superblocks"]);
+  assert.ok(result.coverage.insufficient_campaigns.every(row => /cannot be assessed/i.test(row.explanation)));
 });
 
 test("unrelated or negated comment language is not called benefit-gated distribution", () => {

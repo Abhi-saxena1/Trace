@@ -100,6 +100,9 @@ textarea { width: 100%; padding: 22px; font-size: 18px; line-height: 1.7; resize
 .question-bottom { display: flex; justify-content: space-between; align-items: center; gap: 25px; margin-top: 17px; }
 .question-bottom p { font-size: 11px; line-height: 1.8; color: var(--muted); }
 .form-status { margin-top: 32px; padding-left: 17px; border-left: 2px solid var(--accent); color: var(--muted); font-size: 13px; line-height: 1.8; }
+.structured-result { margin-top: 35px; border-top: 1px solid var(--line); padding-top: 28px; }
+.structured-result > h2 { margin-block: 12px 24px; font-size: clamp(26px, 3vw, 38px); font-weight: 400; letter-spacing: -.035em; }
+.structured-result .evidence-item h3 { margin-top: 24px; }
 .skip-link { position: fixed; top: -80px; left: 15px; z-index: 10; padding: 15px; background: var(--foreground); color: var(--background); }
 .skip-link:focus { top: 15px; }
 @media (min-width: 900px) { main { animation: arrive 400ms ease-out; } }
