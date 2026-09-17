@@ -23,15 +23,17 @@ export default async function Launch({ params }: { params: Promise<{ id: string 
   if (!campaign) notFound();
   const items = research.dataset.content.filter(c => c.campaign_id === id);
   const patterns = research.patterns.filter(p => p.supporting_campaigns.includes(id));
+  const demoPattern = patterns.find(pattern => pattern.id === "credibility-to-participation") ?? patterns[0];
   const mechanics = research.mechanics.filter(item => item.campaign_ids.includes(id));
   const responses = (research.dataset.responses ?? []).filter(item => item.campaign_id === id);
   return <>
-    <PageIntro number={campaign.launch_date ?? "—"} label="Portfolio month" title={campaign.company} description={campaign.description ?? "A source dossier: published material, retained excerpts and deterministic interpretations."} />
+    <PageIntro compact number={campaign.launch_date ?? "—"} label="Portfolio month" title={campaign.company} description={campaign.description ?? "A source dossier: published material, retained excerpts and deterministic interpretations."} />
     <p className="research-note dossier-product"><span className="eyebrow">Product:</span> {campaign.product ?? "Not stated in source"}</p>
     {campaign.campaign_url && <a className="text-link" href={campaign.campaign_url} target="_blank" rel="noreferrer">Open portfolio source ↗</a>}
     <SourceVerificationDetails><p className="research-note">{campaign.provenance.note}</p></SourceVerificationDetails>
     <section className="pattern-entry" aria-label="Launch mechanics"><p className="eyebrow accent">Inferred analysis / Launch mechanics</p><h2>How the observed launch material relates</h2>
       {mechanics.map(item => <LaunchMechanicsView key={item.event_id} mechanics={item} research={research} />)}
+      {demoPattern && <Link className="text-link demo-next-link" href={`/patterns#${demoPattern.id}`}>Continue to recurring pattern <span aria-hidden="true">→</span></Link>}
     </section>
     <section className="pattern-entry" aria-label="Public response"><p className="eyebrow accent">Verified source data / Public response</p><h2>Observed response snapshots</h2>
       <p>Current public counters tied to the exact content source. These are retrieval-time snapshots, not launch-day performance.</p>

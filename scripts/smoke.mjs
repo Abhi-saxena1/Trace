@@ -62,6 +62,8 @@ assert.match(cartesiaDossier, /Funding announcement opening/);
 assert.match(cartesiaDossier, /Author makes a financial milestone claim/);
 assert.match(cartesiaDossier, /Not established from this source/);
 assert.match(cartesiaDossier, /Evidence-backed interpretations for this source item/);
+assert.ok(cartesiaDossier.includes('id="cartesia-launch"'));
+assert.ok(cartesiaDossier.includes('href="/patterns#credibility-to-participation"'));
 assert.equal((await fetch(new URL("/launches/not-a-campaign", base))).status, 404);
 const ask = (body, headers = { "Content-Type": "application/json" }) => fetch(new URL("/api/ask", base), {
   method: "POST", headers, body,
@@ -78,6 +80,11 @@ assert.equal(structuredAnswer.mode, "structured_pattern");
 assert.deepEqual(structuredAnswer.matches.map(match => match.campaign), ["Cartesia", "Gamma", "Icon"]);
 assert.equal(structuredAnswer.coverage.insufficient, 4);
 assert.ok(structuredAnswer.matches.every(match => match.x.span.source_url && match.linkedin.span.source_url));
+const askPage = await (await fetch(new URL("/ask", base))).text();
+assert.ok(pageText(askPage).includes("Which campaigns combine a credibility cue on X with a participation mechanism on LinkedIn?"));
+const patternPage = await (await fetch(new URL("/patterns", base))).text();
+assert.match(pageText(patternPage), /Supporting campaigns\s*3\s*Launch events\s*3\s*Supporting content items\s*6\s*Counterevidence\s*2/);
+assert.match(pageText(patternPage), /Counterevidence &amp; coverage — 2 counterevidence, 4 insufficient/);
 assert.equal((await ask(JSON.stringify({ question: " " }))).status, 400);
 assert.equal((await ask(JSON.stringify({ question: "a".repeat(501) }))).status, 400);
 assert.equal((await ask("not-json")).status, 400);

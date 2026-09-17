@@ -24,7 +24,7 @@ export function SourceVerificationDetails({ children }: { children: ReactNode })
 
 export function LaunchMechanicsView({ mechanics, research, compactLimitations = false }: { mechanics: LaunchMechanics; research: ResearchSnapshot; compactLimitations?: boolean }) {
   const company = mechanics.campaign_ids.map(id => research.dataset.campaigns.find(c => c.id === id)?.company ?? id).join(" + ");
-  return <article className="evidence-item">
+  return <article id={mechanics.event_id} className="evidence-item launch-mechanics-item">
     <h3>{company} / {mechanics.event_id}</h3>
     <p className="eyebrow">Platform sequence: {mechanics.platform_sequence.replaceAll("_", " ")} · {mechanics.sequence_basis.replaceAll("_", " ")}</p>
     <ul className="limitations">{mechanics.content.map(item => <li key={item.content_item_id}>
@@ -38,7 +38,10 @@ export function LaunchMechanicsView({ mechanics, research, compactLimitations = 
     </div>)}
     {mechanics.transformations.map(item => <div key={`${item.from_content_id}:${item.to_content_id}:${item.kind}`}>
       <p>{item.description}</p><p className="eyebrow">Inferred analysis / {item.kind.replaceAll("_", " ")}</p>
-      {item.evidence.map(span => <SourceQuote key={`${span.content_item_id}:${span.start}`} span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} />)}
+      <div className="mechanics-evidence-grid">{item.evidence.map(span => {
+        const content = research.dataset.content.find(candidate => candidate.id === span.content_item_id);
+        return <div key={`${span.content_item_id}:${span.start}`}><p className="eyebrow accent">{content?.platform ?? "Source"} evidence</p><SourceQuote span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} /></div>;
+      })}</div>
     </div>)}
     {!compactLimitations && <p className="research-note">{mechanics.limitations.join(" ")}</p>}
   </article>;
@@ -80,12 +83,22 @@ export function PatternEvidence({ pattern, research }: { pattern: Pattern; resea
   const items = pattern.supporting_content.map(id => research.dataset.content.find(c => c.id === id)!);
   const responseCoverage = new Set((research.dataset.responses ?? []).filter(response => response.verification_state === "verified_source_data" && pattern.supporting_content.includes(response.content_item_id)).map(response => response.content_item_id)).size;
   const specificLimitations = pattern.limitations.filter(limitation => !isSharedPatternLimitation(limitation));
+  const counterevidenceCount = new Set(pattern.counterexamples.map(example => example.campaign_id)).size;
+  const insufficientCount = pattern.coverage.filter(row => row.evidence_state === "insufficient_evidence").length;
+  const coveragePriority: Record<Pattern["coverage"][number]["evidence_state"], number> = { counterevidence: 0, mixed: 1, insufficient_evidence: 2, supported_evidence: 3 };
+  const coverageRows = [...pattern.coverage].sort((a, b) => coveragePriority[a.evidence_state] - coveragePriority[b.evidence_state]);
   return <article id={pattern.id} className="pattern-entry">
     <p className="eyebrow accent">{pattern.confidence} / Inferred analysis</p>
     <h2>{pattern.title}</h2>
     <p>{pattern.description}</p>
     <p className="research-note">{pattern.confidence_reason}</p>
-    <p className="eyebrow">{pattern.supporting_campaigns.length} campaigns · {pattern.supporting_events.length} launch events · {items.length} platform items</p>
+    <dl className="research-meta pattern-coverage" aria-label={`${pattern.title} coverage`}>
+      <div><dt>Supporting campaigns</dt><dd>{pattern.supporting_campaigns.length}</dd></div>
+      <div><dt>Launch events</dt><dd>{pattern.supporting_events.length}</dd></div>
+      <div><dt>Supporting content items</dt><dd>{items.length}</dd></div>
+      <div><dt>Counterevidence</dt><dd>{counterevidenceCount}</dd></div>
+    </dl>
+    <p className="research-note">{insufficientCount} campaigns have insufficient coverage. Missing material is not counted as negative evidence.</p>
     <p className="research-note">Public-response coverage: {responseCoverage} / {pattern.supporting_content.length} supporting content items.</p>
     <details><summary>Inspect launch mechanics</summary>{pattern.supporting_events.map(id => <LaunchMechanicsView key={id} mechanics={research.mechanics.find(item => item.event_id === id)!} research={research} compactLimitations />)}</details>
     <details>
@@ -102,9 +115,9 @@ export function PatternEvidence({ pattern, research }: { pattern: Pattern; resea
       })}
     </details>
     <details>
-      <summary>Coverage & potential counterexamples — all {pattern.coverage.length} campaigns</summary>
+      <summary>Counterevidence &amp; coverage — {counterevidenceCount} counterevidence, {insufficientCount} insufficient</summary>
       <p className="research-note">Complete nonmatching items are potential counterexamples, not conclusive refutations. Excerpt-only nonmatches remain unknown.</p>
-      <ul className="coverage-list">{pattern.coverage.map(row => <li key={row.campaign_id}>
+      <ul className="coverage-list">{coverageRows.map(row => <li key={row.campaign_id}>
         <Link href={`/launches/${row.campaign_id}`}>{name(row.campaign_id)}</Link>
         <span className="eyebrow">{row.evidence_state.replaceAll("_", " ")}</span>
         <p>{row.explanation}</p>
@@ -112,7 +125,7 @@ export function PatternEvidence({ pattern, research }: { pattern: Pattern; resea
         {row.contradicting_content_ids.map(id => <Link className="research-note" key={id} href={`/launches/${row.campaign_id}#${id}`}>Inspect contrary wording: {id} →</Link>)}
         {row.unknown_content_ids.length > 0 && <p className="research-note">Unknown item coverage: {row.unknown_content_ids.join(", ")}</p>}
       </li>)}</ul>
-      <p className="research-note">{new Set(pattern.counterexamples.map(c => c.campaign_id)).size} campaign(s) with counterevidence. Missing material is not counted as a counterexample.</p>
+      <p className="research-note">{counterevidenceCount} campaign(s) with counterevidence. Missing material is not counted as a counterexample.</p>
       {pattern.counterexamples.filter(example => example.kind === "contradicts").flatMap(example => example.spans.map(span => <SourceQuote key={`${span.content_item_id}:${span.start}`} span={span} capture={research.dataset.captures.find(c => c.id === span.capture_id)} />))}
     </details>
     {specificLimitations.length > 0 && <details><summary>Pattern-specific limitations</summary><ul className="limitations">{specificLimitations.map(limit => <li key={limit}><strong>{limitationLabel(limit)}:</strong> {limit}</li>)}</ul></details>}

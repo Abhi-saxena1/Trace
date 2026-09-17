@@ -12,7 +12,7 @@ export default async function Signal() {
   const research = await getResearch();
   const finding = presentSignal(research);
   const signalResponses = finding.state === "finding" ? (research.dataset.responses ?? []).filter(response => finding.pattern.supporting_content.includes(response.content_item_id)) : [];
-  return <><PageIntro number="04" label="An evidence-led observation" title="THE SIGNAL" description="A research observation from the loaded evidence. Read the pattern, inspect its sources, and weigh what remains unknown." />
+  return <><PageIntro compact number="04" label="An evidence-led observation" title="THE SIGNAL" description="A research observation from the loaded evidence. Read the pattern, inspect its sources, and weigh what remains unknown." />
     {finding.state === "insufficient" ? <section className="signal-framework">
       <p className="eyebrow accent">Insufficient evidence</p>
       <h2>First the evidence. Then the signal.</h2>

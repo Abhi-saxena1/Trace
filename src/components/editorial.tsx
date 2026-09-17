@@ -5,8 +5,8 @@ export function Arrow({ diagonal = false }: { diagonal?: boolean }) {
   return <span aria-hidden="true">{diagonal ? "↗" : "→"}</span>;
 }
 
-export function PageIntro({ number, label, title, description }: { number: string; label: string; title: string; description: string }) {
-  return <section className="page-intro"><p className="eyebrow accent">{number} / {label}</p><h1>{title}</h1><p className="intro-description">{description}</p></section>;
+export function PageIntro({ number, label, title, description, compact = false }: { number: string; label: string; title: string; description: string; compact?: boolean }) {
+  return <section className={`page-intro${compact ? " page-intro-compact" : ""}`}><p className="eyebrow accent">{number} / {label}</p><h1>{title}</h1><p className="intro-description">{description}</p></section>;
 }
 
 export function EmptyState({ label, title, children }: { label: string; title: string; children: ReactNode }) {
