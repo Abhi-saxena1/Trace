@@ -7,27 +7,8 @@ TRACE is a source-led research tool for examining Social Capital Inc.'s public l
 It turns public launch material into structured evidence, surfaces recurring patterns across campaigns, and lets researchers inspect the source excerpts, counterevidence and coverage limits behind each finding.
 
 **Live demo:** https://trace-gamma-two.vercel.app/
-## Run locally
 
-Use Node.js 22 LTS or newer and npm. From the repository root:
 
-```sh
-npm ci
-npm run dev
-```
-
-Open http://localhost:3000. No environment variables or external services are required. Fonts use local system stacks, so rendering and builds do not require a font download.
-
-## Commands
-
-```sh
-npm run typecheck
-npm run lint
-npm run build
-npm start
-```
-
-`npm start` serves an existing production build. Stop either server with Ctrl+C.
 
 ## Structure
 
@@ -48,7 +29,7 @@ src/
     editorial.tsx       Shared headings, empty states and links
     site-header.tsx     Route-aware navigation
     launch-index.tsx    Local search/filter state
-    question-form.tsx   Local question input and honest availability feedback
+    question-form.tsx   Dataset question input and result presentation
 ```
 
 ## Foundation decisions
@@ -76,6 +57,21 @@ TRACE currently uses a focused corpus of Social Capital Inc.'s public launch por
 - 6 campaigns with resolvable cross-platform sequence
 - 3 campaigns with insufficient paired-platform evidence for sequence analysis
 
+  ## Ask the Dataset
+
+TRACE supports source retrieval and structured research questions over the loaded dataset.
+
+Example questions:
+
+- Show me Cartesia launch excerpts
+- What source excerpts do you have for Wispr Flow?
+- Which launches mention funding?
+- Which campaigns use personal stories?
+- Show me personal challenge claims
+- Which campaigns combine a credibility cue on X with a participation mechanism on LinkedIn?
+
+The structured cross-platform query returns supporting campaigns, counterevidence and insufficient coverage rather than treating missing evidence as negative evidence.
+
 ## Methodology
 
 TRACE separates:
@@ -91,3 +87,69 @@ Patterns are supported with source excerpts and campaign-level evidence. Counter
 TRACE does not infer causality, campaign effectiveness, or a universally successful launch strategy from the corpus.
 
 The portfolio is purposively selected and should not be treated as a representative sample of all Social Capital campaigns. Public-response values are retrieval-time snapshots, not necessarily launch-day measurements.
+
+## Stack
+
+- Next.js
+- TypeScript
+- React
+- Tailwind CSS
+- Framer Motion
+- React Flow
+- Deterministic research/extraction pipeline
+
+## Run locally
+
+Use Node.js 22 LTS or newer and npm. From the repository root:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open http://localhost:3000. No environment variables or external services are required. Fonts use local system stacks, so rendering and builds do not require a font download.
+
+## Commands
+
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run test:smoke
+npm start
+```
+
+`npm start` serves an existing production build. Stop either server with Ctrl+C.
+
+## Structure
+
+```text
+src/
+  app/
+    layout.tsx          Shared shell, metadata, navigation and footer
+    globals.css         Tailwind import, visual tokens and responsive styles
+    page.tsx            Research overview
+    launches/page.tsx   Launch index
+    patterns/page.tsx   Evidence-supported pattern index
+    network/page.tsx    Relationship map framework
+    signal/page.tsx     The Signal framework
+    ask/page.tsx        Dataset question interface
+    not-found.tsx       Custom 404
+    icon.svg            TRACE favicon
+  components/
+    editorial.tsx       Shared headings, empty states and links
+    site-header.tsx     Route-aware navigation
+    launch-index.tsx    Local search/filter state
+    question-form.tsx   Dataset question input and result presentation
+```
+
+## Limitations
+
+- The corpus is focused and purposively selected, not a representative sample of all Social Capital campaigns.
+- Source coverage is incomplete; missing material is treated as insufficient evidence, not negative evidence.
+- Retained excerpts show observed cues but do not establish the absence of other mechanisms.
+- Public-response metrics are retrieval-time snapshots and are not treated as directly comparable across platforms.
+- Publication sequence is shown only where the underlying timestamps can be verified.
+- Text and source analysis does not establish visual treatment, creator-network effects, audience sentiment, or causal impact.
+
